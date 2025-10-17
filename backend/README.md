@@ -91,5 +91,4 @@ Returns user nodes and edges.
 
 ---
 
-Would you like this README.md saved to your filesystem, added to your collection as documentation, or shared with your team? Let me know your next step!
 
