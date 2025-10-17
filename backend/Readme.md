@@ -1,0 +1,178 @@
+Here is a comprehensive `README.md` for the **cybernauts** Postman collection:
+
+---
+
+# cybernauts Postman Collection
+
+## Purpose
+
+The **cybernauts** collection provides a set of API endpoints for managing users and their relationships in a hypothetical user management system. It covers user creation, retrieval, updating, deletion, and linking/unlinking users as friends. This collection is designed for developers to test, explore, and integrate with the backend service running at `http://localhost:8000/api/v1/users`.
+
+---
+
+## Endpoints Overview
+
+| Name         | Method | URL                                                               | Description                                               |
+|--------------|--------|-------------------------------------------------------------------|-----------------------------------------------------------|
+| test Redis   | GET    | (URL not specified)                                               | Tests Redis connectivity or cache functionality.           |
+| createUser   | POST   | http://localhost:8000/api/v1/users                                | Creates a new user with provided details.                 |
+| getUser      | GET    | http://localhost:8000/api/v1/users                                | Retrieves a list of all users from the database.          |
+| update       | PUT    | http://localhost:8000/api/v1/users/68f2073ea293a9dde2cb7397       | Updates details of a specific user by ID.                 |
+| delteUser    | DELETE | http://localhost:8000/api/v1/users/68f2073ea293a9dde2cb7397       | Deletes a specific user by ID.                            |
+| linkuser     | POST   | http://localhost:8000/api/v1/users//link                          | Links two users as friends (endpoint may need path fix).  |
+| unlink       | DELETE | http://localhost:8000/api/v1/users/68f207d5a293a9dde2cb739b/unlink| Unlinks a user from their friend by user ID.              |
+
+---
+
+## How to Use This Collection
+
+1. **Import the Collection**  
+   Download or fork the [cybernauts collection](collection/33928067-27135b73-c028-41f6-ba61-52a2bab1c284) into your Postman workspace.
+
+2. **Set Up the Environment**  
+   - The collection uses the base URL `http://localhost:8000/api/v1/users`.  
+   - No specific environment variables are required, but you may define a variable for the base URL for flexibility:
+     ```
+     baseUrl = http://localhost:8000/api/v1/users
+     ```
+   - If authentication is required (e.g., JWT), set a global or environment variable named `JWT` and configure the Authorization header as needed.
+
+3. **Run Requests**  
+   - Select any request and click "Send" to interact with the API.
+   - Modify request bodies and parameters as needed for your use case.
+
+---
+
+## Example Usage
+
+### 1. Create a User
+
+**Request:**  
+`POST http://localhost:8000/api/v1/users`
+
+**Body (JSON):**
+```json
+{
+  "username": "Roshan",
+  "age": 22,
+  "hobbies": ["playing", "watching movies", "Dancing"]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "User created successfully",
+  "data": { ... }
+}
+```
+
+---
+
+### 2. Get All Users
+
+**Request:**  
+`GET http://localhost:8000/api/v1/users`
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Users fetched from DB",
+  "data": {
+    "users": [
+      {
+        "_id": "68f207d5a293a9dde2cb739b",
+        "username": "Roshan",
+        "age": 22,
+        "hobbies": ["playing", "watching movies", "Dancing"],
+        "friends": [],
+        "popularityScore": 0,
+        "createdAt": "2025-10-17T09:09:41.607Z",
+        "__v": 2
+      },
+      ...
+    ]
+  }
+}
+```
+
+---
+
+### 3. Update a User
+
+**Request:**  
+`PUT http://localhost:8000/api/v1/users/68f2073ea293a9dde2cb7397`
+
+**Body (JSON):**
+```json
+{
+  "username": "Roshan Updated",
+  "age": 23
+}
+```
+
+---
+
+### 4. Delete a User
+
+**Request:**  
+`DELETE http://localhost:8000/api/v1/users/68f2073ea293a9dde2cb7397`
+
+---
+
+### 5. Link Users as Friends
+
+**Request:**  
+`POST http://localhost:8000/api/v1/users/<userId>/link`
+
+**Body (JSON):**
+```json
+{
+  "friendId": "<friendUserId>"
+}
+```
+
+---
+
+### 6. Unlink a Friend
+
+**Request:**  
+`DELETE http://localhost:8000/api/v1/users/68f207d5a293a9dde2cb739b/unlink`
+
+---
+
+## Setup & Authentication
+
+- **Backend Service:**  
+  Ensure the backend server is running locally at `http://localhost:8000`.
+
+- **Authentication:**  
+  - If endpoints require authentication, set the `JWT` token as a global or environment variable.
+  - Add an `Authorization` header to requests:
+    ```
+    Authorization: Bearer {{JWT}}
+    ```
+  - If authentication is not required, you can ignore this step.
+
+- **Dependencies:**  
+  - No additional dependencies are required for using the collection in Postman.
+
+---
+
+## Notes
+
+- Some endpoints use hardcoded user IDs. Replace these with actual IDs from your database as needed.
+- The `linkuser` endpoint URL appears to have a double slash (`//`). Adjust the path as necessary to match your backend implementation.
+- For advanced workflows, use Postman scripts or the Collection Runner to automate sequences.
+
+---
+
+**Collection Link:**  
+[cybernauts](collection/33928067-27135b73-c028-41f6-ba61-52a2bab1c284)
+
+---
+
+This README provides a complete overview and usage guide for the cybernauts Postman collection.
+
