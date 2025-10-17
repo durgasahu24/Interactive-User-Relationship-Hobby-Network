@@ -47,12 +47,19 @@ export const createUser = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+
+    const userId = req.params.id.trim();
+
+    console.log("userid ",userId); 
+    const user = await User.findById(userId);
+
     if (!user) return res.status(404).json({ message: "User not found" });
+
 
     Object.assign(user, req.body);
     user.popularityScore = await calculatePopularity(user);
     await user.save();
+
 
     await redisClient.del("users");
     await redisClient.del("graph");
@@ -66,8 +73,22 @@ export const updateUser = async (req, res) => {
 
 
 export const deleteUser = async (req, res) => {
+
   try {
-    const user = await User.findById(req.params.id);
+
+    const userId = req.params.id.trim();
+
+    console.log("user id ",userId)
+
+    if(!userId)
+    {
+      return res.status(404).json({message:"id not found"})
+    }
+
+    const user = await User.findById(userId);
+
+    console.log("user ",user);
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (user.friends.length > 0) {
@@ -76,7 +97,8 @@ export const deleteUser = async (req, res) => {
         .json({ message: "Unlink all friends before deleting" });
     }
 
-    await User.findByIdAndDelete(req.params.id);
+    await User.findByIdAndDelete(userId);
+     console.log("delted ")
 
     await redisClient.del("users");
     await redisClient.del("graph");
@@ -157,6 +179,7 @@ export const unlinkUser = async (req, res) => {
 };
 
 export const getGraph = async (_req, res) => {
+
   try {
     const cachedGraph = await redisClient.get("graph");
     if (cachedGraph) {
@@ -180,6 +203,7 @@ export const getGraph = async (_req, res) => {
     await redisClient.setEx("graph", 60, JSON.stringify(graph));
 
     res.json({ source: "db", ...graph });
+    
   } catch (error) {
     console.error("Error in getGraph:", error);
     res.status(500).json({ message: "Server error" });
