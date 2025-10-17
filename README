@@ -24,24 +24,7 @@ The **cybernauts** collection provides a set of API endpoints for managing users
 
 ---
 
-## How to Use This Collection
 
-1. **Import the Collection**  
-   Download or fork the [cybernauts collection](collection/33928067-27135b73-c028-41f6-ba61-52a2bab1c284) into your Postman workspace.
-
-2. **Set Up the Environment**  
-   - The collection uses the base URL `http://localhost:8000/api/v1/users`.  
-   - No specific environment variables are required, but you may define a variable for the base URL for flexibility:
-     ```
-     baseUrl = http://localhost:8000/api/v1/users
-     ```
-   - If authentication is required (e.g., JWT), set a global or environment variable named `JWT` and configure the Authorization header as needed.
-
-3. **Run Requests**  
-   - Select any request and click "Send" to interact with the API.
-   - Modify request bodies and parameters as needed for your use case.
-
----
 
 ## Example Usage
 
@@ -169,8 +152,6 @@ The **cybernauts** collection provides a set of API endpoints for managing users
 
 ---
 
-**Collection Link:**  
-[cybernauts](collection/33928067-27135b73-c028-41f6-ba61-52a2bab1c284)
 
 ---
 
