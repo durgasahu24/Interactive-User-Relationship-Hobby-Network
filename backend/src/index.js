@@ -9,7 +9,7 @@ import userRoute from './routes/users.route.js';
 import connectDB from "../db/db.js";
 import redisClient from "../db/redisClient.js";
 
-const PORT = process.env.PORT || 8000;
+const PORT=process.env.PORT||8000;
 
 if (cluster.isPrimary) {
   const numCPUs = os.cpus().length;

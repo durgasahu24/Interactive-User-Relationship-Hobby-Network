@@ -1,23 +1,27 @@
 import { calculatePopularity } from "../utils/calculatePopularity.js";
 import User from "../models/user.model.js";
 import redisClient from "../../db/redisClient.js";
+import ApiResponse from "../utils/ApiResponse.js";
 
 export const getUsers = async (_req, res) => {
+
   try {
     const cachedUsers = await redisClient.get("users");
 
     if (cachedUsers) {
       console.log("Data from Redis cache");
-      return res.json({ source: "cache", users: JSON.parse(cachedUsers) });
+
+      return ApiResponse.success(res, { users: JSON.parse(cachedUsers) }, "Users fetched from cache");
     }
 
     const users = await User.find();
     await redisClient.setEx("users", 60, JSON.stringify(users)); // Cache for 60s
 
-    res.json({ source: "db", users });
+    ApiResponse.success(res, { users }, "Users fetched from DB");
+
   } catch (error) {
     console.error("Error in getUsers:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
 };
 
@@ -27,7 +31,7 @@ export const createUser = async (req, res) => {
     const { username, age, hobbies } = req.body;
 
     if (!username || !age || !hobbies) {
-      return res.status(400).json({ message: "Missing fields" });
+      return ApiResponse.validationError(res, null, "Missing fields");
     }
 
     const newUser = new User({ username, age, hobbies });
@@ -37,79 +41,67 @@ export const createUser = async (req, res) => {
     await redisClient.del("users");
     await redisClient.del("graph");
 
-    res.status(201).json({ message: "New user created", newUser });
+    ApiResponse.success(res, { newUser }, "New user created");
   } catch (error) {
     console.error("Error in createUser:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
+
 };
 
-
 export const updateUser = async (req, res) => {
+
   try {
-
     const userId = req.params.id.trim();
+    console.log("userid ", userId);
 
-    console.log("userid ",userId); 
     const user = await User.findById(userId);
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
+    if (!user) return ApiResponse.notFound(res, "User not found");
 
     Object.assign(user, req.body);
     user.popularityScore = await calculatePopularity(user);
     await user.save();
 
-
     await redisClient.del("users");
     await redisClient.del("graph");
 
-    res.json({ message: "User updated successfully", user });
+    ApiResponse.success(res, { user }, "User updated successfully");
   } catch (error) {
     console.error("Error in updateUser:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
-};
 
+};
 
 export const deleteUser = async (req, res) => {
 
   try {
-
     const userId = req.params.id.trim();
+    console.log("user id ", userId);
 
-    console.log("user id ",userId)
-
-    if(!userId)
-    {
-      return res.status(404).json({message:"id not found"})
-    }
+    if (!userId) return ApiResponse.notFound(res, "ID not found");
 
     const user = await User.findById(userId);
-
-    console.log("user ",user);
-
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return ApiResponse.notFound(res, "User not found");
 
     if (user.friends.length > 0) {
-      return res
-        .status(409)
-        .json({ message: "Unlink all friends before deleting" });
+      return ApiResponse.error(res, "Unlink all friends before deleting", 409);
     }
 
+
     await User.findByIdAndDelete(userId);
-     console.log("delted ")
+    console.log("deleted");
 
     await redisClient.del("users");
     await redisClient.del("graph");
 
-    res.json({ message: "User deleted successfully" });
+    ApiResponse.success(res, {}, "User deleted successfully");
+
   } catch (error) {
     console.error("Error in deleteUser:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
 };
-
 
 export const linkUser = async (req, res) => {
   try {
@@ -117,16 +109,15 @@ export const linkUser = async (req, res) => {
     const { friendId } = req.body;
 
     if (id === friendId)
-      return res.status(400).json({ message: "Cannot friend yourself" });
+      return ApiResponse.error(res, "Cannot friend yourself", 400);
 
     const user = await User.findById(id);
     const friend = await User.findById(friendId);
 
-    if (!user || !friend)
-      return res.status(404).json({ message: "User(s) not found" });
+    if (!user || !friend) return ApiResponse.notFound(res, "User(s) not found");
 
     if (user.friends.includes(friendId))
-      return res.status(409).json({ message: "Already friends" });
+      return ApiResponse.error(res, "Already friends", 409);
 
     user.friends.push(friendId);
     friend.friends.push(id);
@@ -140,13 +131,12 @@ export const linkUser = async (req, res) => {
     await redisClient.del("users");
     await redisClient.del("graph");
 
-    res.json({ message: "Friendship created" });
+    ApiResponse.success(res, {}, "Friendship created");
   } catch (error) {
     console.error("Error in linkUser:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
 };
-
 
 export const unlinkUser = async (req, res) => {
   try {
@@ -156,8 +146,7 @@ export const unlinkUser = async (req, res) => {
     const user = await User.findById(id);
     const friend = await User.findById(friendId);
 
-    if (!user || !friend)
-      return res.status(404).json({ message: "User(s) not found" });
+    if (!user || !friend) return ApiResponse.notFound(res, "User(s) not found");
 
     user.friends = user.friends.filter(fid => fid.toString() !== friendId);
     friend.friends = friend.friends.filter(fid => fid.toString() !== id);
@@ -171,20 +160,19 @@ export const unlinkUser = async (req, res) => {
     await redisClient.del("users");
     await redisClient.del("graph");
 
-    res.json({ message: "Friendship removed" });
+    ApiResponse.success(res, {}, "Friendship removed");
   } catch (error) {
     console.error("Error in unlinkUser:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
 };
 
 export const getGraph = async (_req, res) => {
-
   try {
     const cachedGraph = await redisClient.get("graph");
     if (cachedGraph) {
       console.log("Graph data from Redis cache");
-      return res.json({ source: "cache", ...JSON.parse(cachedGraph) });
+      return ApiResponse.success(res, JSON.parse(cachedGraph), "Graph fetched from cache");
     }
 
     const users = await User.find();
@@ -202,10 +190,10 @@ export const getGraph = async (_req, res) => {
 
     await redisClient.setEx("graph", 60, JSON.stringify(graph));
 
-    res.json({ source: "db", ...graph });
-    
+    ApiResponse.success(res, graph, "Graph fetched from DB");
   } catch (error) {
     console.error("Error in getGraph:", error);
-    res.status(500).json({ message: "Server error" });
+    ApiResponse.error(res, error.message);
   }
+  
 };
