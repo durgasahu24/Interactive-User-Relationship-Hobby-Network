@@ -4,21 +4,23 @@ import redisClient from "../../db/redisClient.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
 export const getUsers = async (_req, res) => {
-
   try {
     const cachedUsers = await redisClient.get("users");
 
     if (cachedUsers) {
       console.log("Data from Redis cache");
 
-      return ApiResponse.success(res, { users: JSON.parse(cachedUsers) }, "Users fetched from cache");
+      return ApiResponse.success(
+        res,
+        { users: JSON.parse(cachedUsers) },
+        "Users fetched from cache"
+      );
     }
 
     const users = await User.find();
     await redisClient.setEx("users", 60, JSON.stringify(users)); // Cache for 60s
 
     ApiResponse.success(res, { users }, "Users fetched from DB");
-
   } catch (error) {
     console.error("Error in getUsers:", error);
     ApiResponse.error(res, error.message);
@@ -46,11 +48,9 @@ export const createUser = async (req, res) => {
     console.error("Error in createUser:", error);
     ApiResponse.error(res, error.message);
   }
-
 };
 
 export const updateUser = async (req, res) => {
-
   try {
     const userId = req.params.id.trim();
     console.log("userid ", userId);
@@ -70,11 +70,9 @@ export const updateUser = async (req, res) => {
     console.error("Error in updateUser:", error);
     ApiResponse.error(res, error.message);
   }
-
 };
 
 export const deleteUser = async (req, res) => {
-
   try {
     const userId = req.params.id.trim();
     console.log("user id ", userId);
@@ -88,7 +86,6 @@ export const deleteUser = async (req, res) => {
       return ApiResponse.error(res, "Unlink all friends before deleting", 409);
     }
 
-
     await User.findByIdAndDelete(userId);
     console.log("deleted");
 
@@ -96,7 +93,6 @@ export const deleteUser = async (req, res) => {
     await redisClient.del("graph");
 
     ApiResponse.success(res, {}, "User deleted successfully");
-
   } catch (error) {
     console.error("Error in deleteUser:", error);
     ApiResponse.error(res, error.message);
@@ -108,6 +104,8 @@ export const linkUser = async (req, res) => {
     const { id } = req.params;
     const { friendId } = req.body;
 
+    console.log("welcom to linkuser ", id, friendId);
+
     if (id === friendId)
       return ApiResponse.error(res, "Cannot friend yourself", 400);
 
@@ -117,7 +115,7 @@ export const linkUser = async (req, res) => {
     if (!user || !friend) return ApiResponse.notFound(res, "User(s) not found");
 
     if (user.friends.includes(friendId))
-      return ApiResponse.error(res, "Already friends", 409);
+      return ApiResponse.conflict(res, "Already friends", 409);
 
     user.friends.push(friendId);
     friend.friends.push(id);
@@ -143,13 +141,15 @@ export const unlinkUser = async (req, res) => {
     const { id } = req.params;
     const { friendId } = req.body;
 
+    console.log("welcoem user route ", id, friendId);
+
     const user = await User.findById(id);
     const friend = await User.findById(friendId);
 
     if (!user || !friend) return ApiResponse.notFound(res, "User(s) not found");
 
-    user.friends = user.friends.filter(fid => fid.toString() !== friendId);
-    friend.friends = friend.friends.filter(fid => fid.toString() !== id);
+    user.friends = user.friends.filter((fid) => fid.toString() !== friendId);
+    friend.friends = friend.friends.filter((fid) => fid.toString() !== id);
 
     user.popularityScore = await calculatePopularity(user);
     friend.popularityScore = await calculatePopularity(friend);
@@ -172,18 +172,26 @@ export const getGraph = async (_req, res) => {
     const cachedGraph = await redisClient.get("graph");
     if (cachedGraph) {
       console.log("Graph data from Redis cache");
-      return ApiResponse.success(res, JSON.parse(cachedGraph), "Graph fetched from cache");
+      return ApiResponse.success(
+        res,
+        JSON.parse(cachedGraph),
+        "Graph fetched from cache"
+      );
     }
 
     const users = await User.find();
 
-    const nodes = users.map(u => ({
+    const nodes = users.map((u) => ({
       id: u.id,
       data: { label: `${u.username} (${u.age})`, score: u.popularityScore },
     }));
 
-    const edges = users.flatMap(u =>
-      u.friends.map(fid => ({ id: `${u.id}-${fid}`, source: u.id, target: fid }))
+    const edges = users.flatMap((u) =>
+      u.friends.map((fid) => ({
+        id: `${u.id}-${fid}`,
+        source: u.id,
+        target: fid,
+      }))
     );
 
     const graph = { nodes, edges };
@@ -195,5 +203,4 @@ export const getGraph = async (_req, res) => {
     console.error("Error in getGraph:", error);
     ApiResponse.error(res, error.message);
   }
-  
 };

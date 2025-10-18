@@ -13,7 +13,7 @@ const userSchema = new Schema({
   },
   hobbies: {
     type: [String],
-    required: true,
+    required:true, 
   },
   friends: {
     type: [String],

@@ -33,6 +33,15 @@ class ApiResponse {
       errors,
     });
   }
+
+  // Conflict (409) response
+  static conflict(res, message = "Relationship conflict", details = null) {
+    return res.status(409).json({
+      status: "fail",
+      message,
+      details,
+    });
+  }
 }
 
 export default ApiResponse;
