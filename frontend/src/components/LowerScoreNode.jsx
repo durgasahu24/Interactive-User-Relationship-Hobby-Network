@@ -1,68 +1,50 @@
 import React from "react";
 import { Handle, Position, useReactFlow } from "reactflow";
-import { motion } from "framer-motion";
-import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-hot-toast";
 import { setUsers } from "../redux/userSlice";
-import { addUserHobbyAPI } from "../hooks/UseUserGet";
-
+import { addUserHobbyAPI } from "../hooks/UseUserApi";
 
 export const LowScoreNode = ({ data, id }) => {
   const { setNodes } = useReactFlow();
   const dispatch = useDispatch();
   const { users } = useSelector((state) => state.users);
 
-  // allow drop
   const allowDrop = (e) => e.preventDefault();
 
-  // handle hobby drop
   const handleDrop = async (e) => {
     e.preventDefault();
     const hobby = e.dataTransfer.getData("hobby");
     if (!hobby) return;
 
     try {
+      const updatedUser = await addUserHobbyAPI(id, hobby);
 
-      const updatedUser = await addUserHobbyAPI(id, hobby); // just pass the new hobby
-
-
-      // 2️⃣ Update node locally
       setNodes((nds) =>
         nds.map((n) =>
           n.id === id
-            ? {
-                ...n,
-                data: {
-                  ...n.data,
-                  hobbies: updatedUser.hobbies,
-                  score: updatedUser.popularityScore, // updated popularity
-                },
-              }
+            ? { ...n, data: { ...n.data, hobbies: updatedUser.hobbies, score: updatedUser.popularityScore } }
             : n
         )
       );
 
-      toast.success("hubby added sucessfully")
-
-      // 3️⃣ Update users in Redux
       const updatedUsers = users.map((u) => (u._id === id ? updatedUser : u));
       dispatch(setUsers(updatedUsers));
+
+      toast.success("Hobby added successfully!");
     } catch (err) {
-      console.error("Failed to update hobby:", err.response.data.message);
-      toast.error(`${err.response.data.message}`);
+      console.error("Failed to add hobby:", err.response?.data?.message);
+      toast.error(err.response?.data?.message || "Error adding hobby");
     }
   };
 
   return (
-    <motion.div
-      onDrop={handleDrop} // ✅ attach drop handler
-      onDragOver={allowDrop} // ✅ allow dropping
-      initial={{ scale: 0.8, opacity: 0.5 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.3 }}
+    <div
+      onDrop={handleDrop}
+      onDragOver={allowDrop}
       className="p-2 rounded-md border-2 shadow-md text-sm text-center"
       style={{
-        borderColor: "#dc2626", // red
+        borderColor: "#dc2626",
         background: "linear-gradient(135deg, #fee2e2, #fecaca)",
       }}
     >
@@ -73,8 +55,6 @@ export const LowScoreNode = ({ data, id }) => {
       <div className="text-xs text-red-700 mt-1">
         Popularity: {data.score ?? "N/A"}
       </div>
-
-      
 
       <div className="mt-2 flex justify-center gap-2">
         <button
@@ -90,7 +70,6 @@ export const LowScoreNode = ({ data, id }) => {
           Delete
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
-

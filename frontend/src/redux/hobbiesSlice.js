@@ -11,11 +11,8 @@ const hobbiesSlice = createSlice({
     setHobbies: (state, action) => {
       state.hobbies = action.payload;
     },
-    addHobby: (state, action) => {
-      state.hobbies.push(action.payload);
-    },
   },
 });
 
-export const { setHobbies, addHobby } = hobbiesSlice.actions;
+export const { setHobbies} = hobbiesSlice.actions;
 export default hobbiesSlice.reducer;

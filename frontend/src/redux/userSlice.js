@@ -1,17 +1,28 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   users: [],
   graph: { nodes: [], edges: [] },
-  status: 'idle',
+  status: "idle",
   error: null,
 };
 
 const usersSlice = createSlice({
-  name: 'users',
+  name: "users",
   initialState,
   reducers: {
-    // Set all users at once
+    setLoading: (state) => {
+      state.status = "loading";
+    },
+
+    setSuccess: (state) => {
+      state.status = "succeeded";
+      state.error = null;
+    },
+    setError: (state, action) => {
+      state.status = "failed";
+      state.error = action.payload;
+    },
     setUsers: (state, action) => {
       state.users = action.payload;
     },
@@ -20,43 +31,26 @@ const usersSlice = createSlice({
       state.users.push(action.payload);
     },
 
-    // Update a user by id
     updateUser: (state, action) => {
       const updated = action.payload;
       const index = state.users.findIndex((u) => u._id === updated._id);
       if (index !== -1) state.users[index] = updated;
     },
 
-    // Delete a user by id
     deleteUser: (state, action) => {
       state.users = state.users.filter((u) => u._id !== action.payload);
     },
-
-    // Update hobbies of a user (for drag-and-drop)
-    updateUserHobbies: (state, action) => {
-      const { userId, hobby } = action.payload;
-      const user = state.users.find((u) => u._id === userId);
-      if (user) {
-        user.hobbies = user.hobbies ? [...user.hobbies, hobby] : [hobby];
-      }
-    },
-
-    // Set graph (nodes + edges)
-    setGraph: (state, action) => {
-      state.graph = action.payload;
-    },
-
   },
 });
 
 export const {
+  setLoading,
+  setSuccess,
+  setError,
   setUsers,
   addUser,
   updateUser,
   deleteUser,
-  updateUserHobbies,
-  setGraph,
-  clearAll,
 } = usersSlice.actions;
 
 export default usersSlice.reducer;

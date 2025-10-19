@@ -13,17 +13,19 @@ export const Home = () => {
   return (
     <div className="flex h-screen">
       <Sidebar />
-      <div className="flex-1 p-2 flex flex-col ">
-        {/* Add New User Button */}
-        <button
-          onClick={handleAddUser}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-40 mb-4"
-        >
-          Add New User
-        </button>
+      <div className="flex-1 p-4 flex flex-col">
+        {/* Add New User Button centered */}
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={handleAddUser}
+            className="bg-black text-white px-6 py-2 rounded hover:bg-black"
+          >
+            Add New User
+          </button>
+        </div>
 
         {/* Graph */}
-        <div className="flex-1 mt-2">
+        <div className="flex-1">
           <Graph />
         </div>
       </div>

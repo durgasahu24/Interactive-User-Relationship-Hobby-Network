@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addUser, updateUser } from "../redux/userSlice";
 import { setHobbies } from "../redux/hobbiesSlice";
-import { createUserAPI, updateUserAPI, getHobbiesApi } from "../hooks/UseUserGet";
+import { createUserAPI, updateUserAPI, getHobbiesApi } from "../hooks/UseUserApi";
 import toast from "react-hot-toast";
 
 export const UserForm = () => {
