@@ -128,16 +128,3 @@ backend/
 * `GET /hobbies` → Get all hobbies
 
 ---
-
-## 📝 License
-
-This project is licensed under the **MIT License**.
-
----
-
-## 📬 Contact
-
-* **GitHub**: [durgasahu24](https://github.com/durgasahu24)
-* **Email**: [durgasahu24@example.com](mailto:durgasahu24@example.com)
-
----
