@@ -27,7 +27,7 @@ if (cluster.isPrimary) {
 } else {
   // Worker process: start server
   const app = express();
-  app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+  app.use(cors({ origin: ["https://interactive-user-relationship-hobby.vercel.app","http://localhost:5173"], credentials: true }));
   app.use(express.json());
   app.use("/api/v1/", userRoute);
 
@@ -41,6 +41,8 @@ if (cluster.isPrimary) {
       console.log(`Redis connection failed (Worker ${process.pid})`, err);
     }
   })();
+
+  
 
   app.get("/test-redis", async (req, res) => {
     try {
