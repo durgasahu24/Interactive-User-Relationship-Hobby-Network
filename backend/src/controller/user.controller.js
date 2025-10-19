@@ -42,6 +42,7 @@ export const createUser = async (req, res) => {
 
     await redisClient.del("users");
     await redisClient.del("graph");
+          await redisClient.del("hobbies");
 
     ApiResponse.success(res, { newUser }, "New user created");
   } catch (error) {
@@ -49,6 +50,7 @@ export const createUser = async (req, res) => {
     ApiResponse.error(res, error.message);
   }
 };
+
 
 export const updateUser = async (req, res) => {
   try {
@@ -64,6 +66,7 @@ export const updateUser = async (req, res) => {
 
     await redisClient.del("users");
     await redisClient.del("graph");
+          await redisClient.del("hobbies");
 
     ApiResponse.success(res, { user }, "User updated successfully");
   } catch (error) {
@@ -83,7 +86,7 @@ export const deleteUser = async (req, res) => {
     if (!user) return ApiResponse.notFound(res, "User not found");
 
     if (user.friends.length > 0) {
-      return ApiResponse.error(res, "Unlink all friends before deleting", 409);
+      return ApiResponse.conflict(res, "Unlink all friends before deleting", 409);
     }
 
     await User.findByIdAndDelete(userId);
@@ -91,6 +94,7 @@ export const deleteUser = async (req, res) => {
 
     await redisClient.del("users");
     await redisClient.del("graph");
+          await redisClient.del("hobbies");
 
     ApiResponse.success(res, {}, "User deleted successfully");
   } catch (error) {
@@ -128,6 +132,7 @@ export const linkUser = async (req, res) => {
 
     await redisClient.del("users");
     await redisClient.del("graph");
+          await redisClient.del("hobbies");
 
     ApiResponse.success(res, {}, "Friendship created");
   } catch (error) {
@@ -141,12 +146,14 @@ export const unlinkUser = async (req, res) => {
     const { id } = req.params;
     const { friendId } = req.body;
 
-    console.log("welcoem user route ", id, friendId);
-
     const user = await User.findById(id);
     const friend = await User.findById(friendId);
 
     if (!user || !friend) return ApiResponse.notFound(res, "User(s) not found");
+
+    if (!user.friends.includes(friendId)) {
+      return ApiResponse.conflict(res, "No existing friendship to remove");
+    }
 
     user.friends = user.friends.filter((fid) => fid.toString() !== friendId);
     friend.friends = friend.friends.filter((fid) => fid.toString() !== id);
@@ -159,6 +166,7 @@ export const unlinkUser = async (req, res) => {
 
     await redisClient.del("users");
     await redisClient.del("graph");
+          await redisClient.del("hobbies");
 
     ApiResponse.success(res, {}, "Friendship removed");
   } catch (error) {
@@ -166,6 +174,7 @@ export const unlinkUser = async (req, res) => {
     ApiResponse.error(res, error.message);
   }
 };
+
 
 export const getGraph = async (_req, res) => {
   try {
@@ -201,6 +210,67 @@ export const getGraph = async (_req, res) => {
     ApiResponse.success(res, graph, "Graph fetched from DB");
   } catch (error) {
     console.error("Error in getGraph:", error);
+    ApiResponse.error(res, error.message);
+  }
+};
+
+export const getHobbies = async (req, res) => {
+  try {
+    const cachedHobbies = await redisClient.get("hobbies");
+    if (cachedHobbies) {
+      console.log("Hobbies from Redis cache");
+      return ApiResponse.success(
+        res,
+        JSON.parse(cachedHobbies),
+        "Hobbies fetched from cache"
+      );
+    }
+
+    // Get distinct hobbies from DB
+    const hobbies = await User.distinct("hobbies");
+
+    // Cache for 60 seconds
+    await redisClient.setEx("hobbies", 60, JSON.stringify(hobbies));
+
+    ApiResponse.success(res, hobbies, "Hobbies fetched from DB");
+  } catch (error) {
+    console.error("Error in getHobbies:", error);
+    ApiResponse.error(res, error.message);
+  }
+};
+
+
+
+
+export const addHobbyToUser = async (req, res) => {
+  try {
+    const userId = req.params.id.trim();
+    const { hobby } = req.body;
+
+    if (!hobby) return ApiResponse.validationError(res, null, "Hobby is required");
+
+    const user = await User.findById(userId);
+    if (!user) return ApiResponse.notFound(res, "User not found");
+
+    // Add hobby if not already in user's list
+    if (!user.hobbies.includes(hobby)) {
+      user.hobbies.push(hobby);
+      user.popularityScore = await calculatePopularity(user);
+      console.log("user  pop",user);
+      await user.save();
+
+      // Clear relevant caches
+      await redisClient.del("users");
+      await redisClient.del("graph");
+      await redisClient.del("hobbies");
+
+      ApiResponse.success(res, { user }, "Hobby added and popularity updated");
+
+    } else {
+      ApiResponse.conflict(res, "Hobby already exists", 409);
+    }
+  } catch (error) {
+    console.error("Error in addHobbyToUser:", error);
     ApiResponse.error(res, error.message);
   }
 };
