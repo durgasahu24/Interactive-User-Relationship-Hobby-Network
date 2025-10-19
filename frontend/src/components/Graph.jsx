@@ -10,21 +10,23 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { useSelector, useDispatch } from "react-redux";
 import { setGraph, setUsers } from "../redux/userSlice";
-import {
-  fetchUsersAPI,
-  deleteUserAPI,
-  updateUserAPI,
-  linkUserAPI,
-} from "../hooks/UseUserGet";
-import { CustomNode } from "./CustomNode";
+import { fetchUsersAPI, deleteUserAPI, linkUserAPI } from "../hooks/UseUserGet";
 import { unlinkUserAPI } from "../hooks/UseUserGet";
+import { LowScoreNode } from "./LowerScoreNode";
+import { HighScoreNode } from "./HighScoreNode";
+import { getHobbiesApi } from "../hooks/UseUserGet";
+import { setHobbies } from "../redux/hobbiesSlice";
+import { useNavigate } from "react-router-dom";
 
-const nodeTypes = { customNode: CustomNode };
+const nodeTypes = {
+  highScoreNode: HighScoreNode,
+  lowScoreNode: LowScoreNode,
+};
 
 export const Graph = () => {
   const dispatch = useDispatch();
   const { graph, users } = useSelector((state) => state.users);
-
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState(graph.nodes);
   const [edges, setEdges] = useState(graph.edges);
 
@@ -37,12 +39,14 @@ export const Graph = () => {
     const newNodes = users.map((u, idx) => {
       const row = Math.floor(idx / nodesPerRow);
       const col = idx % nodesPerRow;
+      const nodeType = u.popularityScore > 5 ? "highScoreNode" : "lowScoreNode";
 
       return {
         id: u._id,
-        type: "customNode",
+        type: nodeType,
         data: {
           label: `${u.username} (${u.age})`,
+          score: u.popularityScore,
           onDelete: () => handleDelete(u._id),
           onEdit: () => handleEdit(u),
         },
@@ -52,12 +56,12 @@ export const Graph = () => {
 
     const newEdges = users.flatMap((u) =>
       u.friends
-        .filter((fid) => u._id < fid) 
+        .filter((fid) => u._id < fid)
         .map((fid) => ({
           id: `${u._id}-${fid}`,
           source: u._id,
           target: fid,
-          animated:true
+          animated: true,
         }))
     );
 
@@ -65,7 +69,44 @@ export const Graph = () => {
     setEdges(newEdges);
   }, [users]);
 
-  const handleDelete = (userId) => {
+  // Fetch users initially
+  useEffect(() => {
+    const fetchOtherUsers = async () => {
+      try {
+        const users = await fetchUsersAPI();
+        dispatch(setUsers(users));
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast.error("Failed to fetch users");
+      }
+    };
+    fetchOtherUsers();
+  }, [dispatch]);
+
+  useEffect(() => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        const user = users.find((u) => u._id === n.id);
+        if (!user) return n;
+
+        const newType =
+          user.popularityScore > 5 ? "highScoreNode" : "lowScoreNode";
+
+        return {
+          ...n,
+          type: newType,
+          data: {
+            ...n.data,
+            label: `${user.username} (${user.age})`,
+            score: user.popularityScore,
+          },
+        };
+      })
+    );
+  }, [users]);
+
+  const handleDelete = (userId) => 
+     {
     // Show toast confirmation
     toast((t) => (
       <div className="p-2">
@@ -77,6 +118,8 @@ export const Graph = () => {
               try {
                 await deleteUserAPI(userId);
                 const updated = users.filter((u) => u._id !== userId);
+                const updatedHobbies = await getHobbiesApi();
+                dispatch(setHobbies(updatedHobbies));
                 dispatch(setUsers(updated));
                 toast.success("User deleted successfully!");
               } catch (err) {
@@ -101,23 +144,8 @@ export const Graph = () => {
     ));
   };
 
-  // Edit user
-  const handleEdit = async (user) => {
-    const newName = prompt("Enter new username:", user.username);
-    const newAge = prompt("Enter new age:", user.age);
-    if (!newName || !newAge) return;
-
-    try {
-      await updateUserAPI(user._id, { username: newName, age: newAge });
-      const updatedUsers = users.map((u) =>
-        u._id === user._id ? { ...u, username: newName, age: newAge } : u
-      );
-      dispatch(setUsers(updatedUsers));
-      toast.success("User updated successfully!");
-    } catch (err) {
-      console.error("Update failed:", err);
-      toast.error("Failed to update user");
-    }
+  const handleEdit = (user) => {
+    navigate(`/user/${user._id}`);
   };
 
   const onNodesChange = useCallback(
@@ -130,54 +158,49 @@ export const Graph = () => {
   );
 
   // Connect two users (create friendship)
-  const onConnect = useCallback(async (connection) => {
-    setEdges((eds) => addEdge(connection, eds));
-
-    const { source, target } = connection;
-    try {
-      await linkUserAPI(source, target);
-      toast.success("Friendship created!");
-    } catch (err) {
-      console.error("Failed to link users:", err);
-      toast.error("Failed to create friendship");
-    }
-  }, []);
-
-  // Fetch users initially
-  useEffect(() => {
-    const fetchOtherUsers = async () => {
+  const onConnect = useCallback(
+    async (connection) => {
+      const { source, target } = connection;
       try {
-        const users = await fetchUsersAPI();
-        dispatch(setUsers(users));
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        toast.error("Failed to fetch users");
-      }
-    };
-    fetchOtherUsers();
-  }, [dispatch]);
-
-  const onEdgesDelete = useCallback(async (edgesToDelete) => {
-    for (const edge of edgesToDelete) {
-      const { source, target } = edge;
-
-      console.log("source target ", source, target);
-
-      try {
-        // Call backend to unlink users
-        await unlinkUserAPI(source, target);
-        toast.success(`Friendship removed`);
+        await linkUserAPI(source, target);
+        const updatedUsers = await fetchUsersAPI();
+        dispatch(setUsers(updatedUsers));
+        setEdges((eds) => addEdge(connection, eds));
+        toast.success("Friendship created!");
       } catch (err) {
-        console.error("Failed to unlink users:", err);
-        toast.error(err.response?.data?.message || "Failed to unlink users");
+        console.error("Failed to link users:", err);
+        toast.error("Failed to create friendship");
       }
-    }
+    },
+    [dispatch]
+  );
 
-    // Remove edges visually
-    setEdges((eds) =>
-      eds.filter((e) => !edgesToDelete.find((del) => del.id === e.id))
-    );
-  }, []);
+  const onEdgesDelete = useCallback(
+    async (edgesToDelete) => {
+      for (const edge of edgesToDelete) {
+        const { source, target } = edge;
+
+        console.log("source target ", source, target);
+
+        try {
+          // Call backend to unlink users
+          await unlinkUserAPI(source, target);
+          const updatedUsers = await fetchUsersAPI();
+          dispatch(setUsers(updatedUsers));
+          toast.success(`Friendship removed`);
+        } catch (err) {
+          console.error("Failed to unlink users:", err);
+          toast.error(err.response?.data?.message || "Failed to unlink users");
+        }
+      }
+
+      // Remove edges visually
+      setEdges((eds) =>
+        eds.filter((e) => !edgesToDelete.find((del) => del.id === e.id))
+      );
+    },
+    [dispatch]
+  );
 
   return (
     <div style={{ width: "100%", height: "100%" }}>

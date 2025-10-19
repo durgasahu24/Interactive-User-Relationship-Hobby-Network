@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  hobbies: ["studing","reading","dancing"],
+  hobbies: [],
 };
 
 const hobbiesSlice = createSlice({
