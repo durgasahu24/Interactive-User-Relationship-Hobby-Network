@@ -1,10 +1,14 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = import.meta.env.VITE_BASE_URI;
+
+console.log("api base ",API_BASE);
 
 // Fetch all users
 export const fetchUsersAPI = async () => {
-  const res = await axios.get(`${API_BASE}/users`);
+  const res = await axios.get(`${API_BASE}/users`,{
+    withCredentials:true
+  });
   return res.data.data.users;
 };
 
