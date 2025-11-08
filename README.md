@@ -43,6 +43,7 @@ An **interactive web application** to visualize users, their relationships, and 
   * Node.js
   * Express
   * MongoDB
+  * redis
 
 ---
 
